@@ -1,0 +1,38 @@
+server:
+  port: 8088
+
+cususer:
+  name: zjy
+  age: 28
+  addr: bj
+  bitrh:
+  cuslist:
+    - 'aa'
+    - 'bb'
+    - 'cc'
+  cusArray:
+    - 'aaa'
+    - 'bbb'
+    - 'ccc'
+  cusmap: {name: zjy,age: 18}
+  son:
+    name: zjyson
+    age: 2
+  cusmap2:
+    key1: value1
+    key2: value2
+    key3: value3
+  cuslist2:
+    - map1:
+      mapkey1: mapvalue1
+      mapkey2: mapvalue2
+      mapkey3: mapvalue3
+    - map2:
+      mapkey1: mapvalue111
+      mapkey2: mapvalue222
+      mapkey3: mapvalue322
+    - map3:
+      mapkey1: mapvalue144
+      mapkey2: mapvalue244
+      mapkey3: mapvalue344
+cusValue: cusvalue
