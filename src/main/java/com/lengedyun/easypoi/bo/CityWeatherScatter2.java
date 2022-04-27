@@ -3,6 +3,7 @@ package com.lengedyun.easypoi.bo;
 import cn.afterturn.easypoi.excel.annotation.Excel;
 import cn.afterturn.easypoi.excel.annotation.ExcelCollection;
 import cn.afterturn.easypoi.excel.annotation.ExcelTarget;
+import cn.afterturn.easypoi.excel.entity.params.ExcelExportEntity;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.io.Serializable;
@@ -19,24 +20,11 @@ import java.util.List;
 @ExcelTarget("CityWeatherScatter")
 public class CityWeatherScatter2 implements Serializable {
 
-    @JsonFormat(pattern="yyyy-MM-dd")
-    @Excel(name = "日期",exportFormat="yyyy-MM-dd",orderNum = "2")
-    private Date date;
+    private List<ExcelExportEntity> entities;
 
     @ExcelCollection(name = "时间",orderNum = "0")
     private List<TimeBo> timeList;
 
-//    @ExcelCollection(name = "温度",orderNum = "1")
-//    private List<Float> temperatureList;
-
-
-    public Date getDate() {
-        return date;
-    }
-
-    public void setDate(Date date) {
-        this.date = date;
-    }
 
     public List<TimeBo> getTimeList() {
         return timeList;
@@ -46,16 +34,8 @@ public class CityWeatherScatter2 implements Serializable {
         this.timeList = timeList;
     }
 
-    //    public List<Float> getTemperatureList() {
-//        return temperatureList;
-//    }
-//
-//    public void setTemperatureList(List<Float> temperatureList) {
-//        this.temperatureList = temperatureList;
-//    }
-
-    public CityWeatherScatter2(Date date, List<TimeBo> timeList) {
-        this.date = date;
+    public CityWeatherScatter2(List<ExcelExportEntity> entities, List<TimeBo> timeList) {
+        this.entities = entities;
         this.timeList = timeList;
     }
 
