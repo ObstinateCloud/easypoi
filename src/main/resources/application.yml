@@ -36,3 +36,13 @@ cususer:
       mapkey2: mapvalue244
       mapkey3: mapvalue344
 cusValue: cusvalue
+
+spring:
+  elasticsearch:
+    rest:
+      uris: http://192.168.20.207:9200
+  jpa:
+    show-sql: true
+logging:
+  level:
+    tracer: TRACE
