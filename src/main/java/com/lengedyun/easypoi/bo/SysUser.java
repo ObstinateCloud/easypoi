@@ -1,4 +1,4 @@
-package com.lengedyun.easypoi;
+package com.lengedyun.easypoi.bo;
 
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +16,7 @@ import java.util.List;
  * @date: 2022/5/7 11:06
  */
 
-@Document(indexName = "sys_user")   //文档
+@Document(indexName = "sys_user")   //索引名
 @Data
 @Builder
 public class SysUser {

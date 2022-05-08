@@ -40,7 +40,11 @@ cusValue: cusvalue
 spring:
   elasticsearch:
     rest:
-      uris: http://192.168.20.207:9200
+#      uris: http://192.168.20.207:9200
+      uris: http://127.0.0.1:9200
+#      uris: http://192.168.171.37:9200
+#      username: admin
+#      password: admin
   jpa:
     show-sql: true
 logging:

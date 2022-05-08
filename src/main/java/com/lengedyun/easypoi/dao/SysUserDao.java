@@ -7,9 +7,11 @@ package com.lengedyun.easypoi.dao;
  * @date: 2022/5/7 11:07
  */
 
-import com.lengedyun.easypoi.SysUser;
+import com.lengedyun.easypoi.bo.SysUser;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 /**
  * 第一种方式，类似于JPA，编写一个ElasticsearchRepository
@@ -20,5 +22,12 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface SysUserDao extends ElasticsearchRepository<SysUser,String> {
 
+    List<SysUser> findSysUsersByUsername(String username);
+
+    List<SysUser> findByUsername(String username);
+
+    List<SysUser> findByLevelGreaterThanEqual(int level);
+
+    List<SysUser> findSysUsersByLevelGreaterThanEqual(int level);
 
 }
