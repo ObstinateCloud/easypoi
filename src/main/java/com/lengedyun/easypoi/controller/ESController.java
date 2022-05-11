@@ -11,8 +11,16 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.models.auth.In;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.delete.DeleteResponse;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -23,6 +31,10 @@ import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.*;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -139,7 +151,7 @@ public class ESController {
         JSONArray objects = JSON.parseArray(JSON.toJSONString(sysUsers));
         return objects;
     }
-
+    @ApiOperation("RestHighLevelClient 创建索引简单方式")
     @GetMapping(value = "createIndex")
     public CreateIndexResponse createIndex(String index) {
         //创建索引请求
@@ -286,7 +298,102 @@ public class ESController {
         return updateResponse;
     }
 
+    @GetMapping(value = "deleteDoc")
+    @ApiOperation("RestHighLevelClient 删除文档")
+    public DeleteResponse deleteDoc(String index,String id) {
 
+        DeleteRequest deleteRequest = new DeleteRequest(index,id);
+        DeleteResponse delete = null;
+        try {
+            delete = restHighLevelClient.delete(deleteRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return delete;
+    }
+
+    @GetMapping(value = "getDocById")
+    @ApiOperation("RestHighLevelClient 获取单个文档")
+    public GetResponse getDocById(String index,String id) {
+
+        GetRequest getRequest = new GetRequest(index,id);
+        GetResponse documentFields = null;
+        try {
+            documentFields = restHighLevelClient.get(getRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return documentFields;
+    }
+
+    @GetMapping(value = "batchAdd")
+    @ApiOperation("RestHighLevelClient 批量添加文档")
+    public BulkResponse batchAdd(String index) {
+        List<String> list = new ArrayList<>();
+        list.add("teacher");
+        list.add("student");
+        list.add("admin");
+        list.add("leader");
+        BulkRequest bulkRequest =new BulkRequest();
+        for (int i = 0; i < 10; i++) {
+            SysUser build = SysUser.builder()
+                    .password("admin" + i)
+                    .username("程序员" + i)
+                    .level(i)
+                    .roles(list.subList(0, i%3))
+                    .build();
+            IndexRequest indexRequest = new IndexRequest(index).id(i+"");
+            indexRequest.source(JSON.toJSONString(build),XContentType.JSON);
+            bulkRequest.add(indexRequest);
+        }
+        //执行批量添加请求
+        BulkResponse bulk = null;
+        try {
+            bulk = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return bulk;
+    }
+
+    @GetMapping(value = "getDocList")
+    @ApiOperation("RestHighLevelClient 带条件查询列表")
+    public SearchHits getDocList(String index,SysUser sysUser) {
+        SearchRequest searchRequest =new SearchRequest(index);
+        //构建搜索builder
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        //模糊匹配
+        MatchQueryBuilder matchAllQueryBuilder = QueryBuilders.matchQuery("username",sysUser.getUsername());
+        matchAllQueryBuilder.queryName("userage");
+        //精准匹配
+        MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("username",sysUser.getUsername());
+        //精准匹配 注 term 遇到单次或者汉字会分词 查不到
+        TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("username", sysUser.getUsername());
+        builder.query(matchAllQueryBuilder);
+        //设置分页查询
+        builder.from(0);
+        builder.size(14);
+        //排序
+        builder.sort("level", SortOrder.DESC);
+
+        searchRequest.source(builder);
+
+        SearchResponse search = null;
+        try {
+            search = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        SearchHits hits = search.getHits();
+        hits.forEach(p->{
+            System.out.println(p.getSourceAsString());
+        });
+
+        return hits;
+
+    }
 
 
 }
