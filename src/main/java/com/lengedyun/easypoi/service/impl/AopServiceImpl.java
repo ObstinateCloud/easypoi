@@ -21,8 +21,8 @@ public class AopServiceImpl implements AopService {
 
     @Override
     @AutoLog(value = "methodAop",businessType = BusinessType.BUSINESS_TYPE_2,operateType = OperateType.OPERATE_TYPE_DELETE)
-    public List<String> getOrderlyExectionStatusBo(OrderlyExectionStatusBo orderlyExectionStatusBo) {
+    public String getOrderlyExectionStatusBo(OrderlyExectionStatusBo orderlyExectionStatusBo) {
         System.out.println(orderlyExectionStatusBo.toString());
-        return new ArrayList<>();
+        return orderlyExectionStatusBo.toString();
     }
 }

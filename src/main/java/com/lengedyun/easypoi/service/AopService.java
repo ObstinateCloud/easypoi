@@ -12,5 +12,5 @@ import java.util.List;
  */
 public interface AopService {
 
-    List<String> getOrderlyExectionStatusBo(OrderlyExectionStatusBo orderlyExectionStatusBo);
+    String getOrderlyExectionStatusBo(OrderlyExectionStatusBo orderlyExectionStatusBo);
 }

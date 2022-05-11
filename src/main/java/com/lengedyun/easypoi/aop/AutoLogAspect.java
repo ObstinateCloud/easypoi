@@ -31,6 +31,7 @@ public class AutoLogAspect {
         //执行方法
         Object result = joinPoint.proceed();
         getann(joinPoint);
+        System.out.println(result.toString());
         return result;
     }
 
