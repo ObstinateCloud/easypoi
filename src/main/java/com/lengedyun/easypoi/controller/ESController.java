@@ -29,25 +29,32 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.common.text.Text;
+import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.MaxAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.core.query.HighlightQueryBuilder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 
 /**
  * @title: ESController
@@ -338,11 +345,11 @@ public class ESController {
         for (int i = 0; i < 10; i++) {
             SysUser build = SysUser.builder()
                     .password("admin" + i)
-                    .username("程序员" + i)
+                    .username("程序员" + i+"xx")
                     .level(i)
-                    .roles(list.subList(0, i%3))
+                    .roles(list.subList(0, i%3+1))
                     .build();
-            IndexRequest indexRequest = new IndexRequest(index).id(i+"");
+            IndexRequest indexRequest = new IndexRequest(index);
             indexRequest.source(JSON.toJSONString(build),XContentType.JSON);
             bulkRequest.add(indexRequest);
         }
@@ -364,13 +371,14 @@ public class ESController {
         //构建搜索builder
         SearchSourceBuilder builder = new SearchSourceBuilder();
         //模糊匹配
-        MatchQueryBuilder matchAllQueryBuilder = QueryBuilders.matchQuery("username",sysUser.getUsername());
-        matchAllQueryBuilder.queryName("userage");
+        MatchQueryBuilder matchQueryBuilder = QueryBuilders.matchQuery("username",sysUser.getUsername());
         //精准匹配
         MatchPhraseQueryBuilder matchPhraseQueryBuilder = QueryBuilders.matchPhraseQuery("username",sysUser.getUsername());
         //精准匹配 注 term 遇到单次或者汉字会分词 查不到
         TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("username", sysUser.getUsername());
-        builder.query(matchAllQueryBuilder);
+
+
+        builder.query(matchPhraseQueryBuilder);
         //设置分页查询
         builder.from(0);
         builder.size(14);
@@ -388,12 +396,251 @@ public class ESController {
 
         SearchHits hits = search.getHits();
         hits.forEach(p->{
+            System.out.println(p.getSourceAsMap().toString());
+            System.out.println(p.getSourceAsString());
+            System.out.println(p.getHighlightFields().toString());
+            System.out.println("------------------");
+        });
+
+        return hits;
+
+    }
+
+    @GetMapping(value = "filterDocList")
+    @ApiOperation("RestHighLevelClient 字段过滤")
+    public SearchHits filterDocList(String index) {
+        SearchRequest searchRequest =new SearchRequest(index);
+        //构建搜索builder
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //全部查询
+        MatchAllQueryBuilder matchAllQueryBuilder = QueryBuilders.matchAllQuery();
+        searchSourceBuilder.query(matchAllQueryBuilder);
+
+        String[] excludeds = {};
+        String[] includes = {"username"};
+        //设置过滤字段
+        searchSourceBuilder.fetchSource(includes, excludeds);
+        searchRequest.source(searchSourceBuilder);
+
+        SearchResponse search = null;
+        try {
+            search = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        SearchHits hits = search.getHits();
+        hits.forEach(p->{
             System.out.println(p.getSourceAsString());
         });
 
         return hits;
 
     }
+
+    @GetMapping(value = "boolQueryDocList")
+    @ApiOperation("RestHighLevelClient 组合多条件查询")
+    public SearchHits boolQueryDocList(String index,SysUser sysUser) {
+        SearchRequest searchRequest =new SearchRequest(index);
+        //构建搜索builder
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
+        //构建多条件builder
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        //must 必须满足
+//        boolQueryBuilder.must(QueryBuilders.termQuery("username",sysUser.getUsername()));
+        boolQueryBuilder.must(QueryBuilders.matchPhraseQuery("username",sysUser.getUsername()));
+        // must not 必须不满足
+        //should 或者 相当于mysql 的or
+        boolQueryBuilder.should(QueryBuilders.matchPhraseQuery("password",sysUser.getPassword()));
+//        boolQueryBuilder.should(QueryBuilders.matchPhraseQuery("username",sysUser.getUsername()));
+
+        searchSourceBuilder.query(boolQueryBuilder);
+        searchRequest.source(searchSourceBuilder);
+
+        SearchResponse search = null;
+        try {
+            search = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        SearchHits hits = search.getHits();
+        hits.forEach(p->{
+            System.out.println(p.getSourceAsString());
+        });
+
+        return hits;
+
+    }
+
+    @GetMapping(value = "rangeQueryDocList")
+    @ApiOperation("RestHighLevelClient 范围查询")
+    public SearchHits rangeQueryDocList(String index,SysUser sysUser) {
+        SearchRequest searchRequest =new SearchRequest(index);
+        //构建搜索builder
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
+        //构建范围builder
+        RangeQueryBuilder rangeQueryBuilder = QueryBuilders.rangeQuery("level");
+        rangeQueryBuilder.gte(sysUser.getLevel());
+
+        searchSourceBuilder.query(rangeQueryBuilder);
+        searchRequest.source(searchSourceBuilder);
+
+        SearchResponse search = null;
+        try {
+            search = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        SearchHits hits = search.getHits();
+        hits.forEach(p->{
+            System.out.println(p.getSourceAsString());
+        });
+
+        return hits;
+
+    }
+
+    @GetMapping(value = "fuzzyQueryDocList")
+    @ApiOperation("RestHighLevelClient 模糊查询")
+    public SearchHits fuzzyQueryDocList(String index,SysUser sysUser) {
+        SearchRequest searchRequest =new SearchRequest(index);
+        //构建搜索builder
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
+        //构建模糊builder  需要注意分词
+        FuzzyQueryBuilder fuzzyQueryBuilder = QueryBuilders.fuzzyQuery("username.keyword",sysUser.getUsername())
+                .fuzziness(Fuzziness.TWO);
+
+
+        searchSourceBuilder.query(fuzzyQueryBuilder);
+        searchRequest.source(searchSourceBuilder);
+
+        SearchResponse search = null;
+        try {
+            search = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        SearchHits hits = search.getHits();
+        hits.forEach(p->{
+            System.out.println(p.getSourceAsString());
+        });
+
+        return hits;
+
+    }
+
+    @GetMapping(value = "highLightDocList")
+    @ApiOperation("RestHighLevelClient 高亮查询")
+    public SearchHits highLightDocList(String index,SysUser sysUser) {
+        SearchRequest searchRequest =new SearchRequest(index);
+        //构建搜索builder
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
+        //构建高亮builder
+        HighlightBuilder highlightBuilder = new HighlightBuilder();
+
+        //设置高亮字段
+        highlightBuilder.preTags("<font color='red'>");//前缀
+        highlightBuilder.postTags("</font>");//后缀
+        highlightBuilder.field("username");
+
+        searchSourceBuilder.highlighter(highlightBuilder);
+        searchSourceBuilder.query(QueryBuilders.matchPhraseQuery("username",sysUser.getUsername()));
+
+        searchRequest.source(searchSourceBuilder);
+
+        SearchResponse search = null;
+        try {
+            search = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        SearchHits hits = search.getHits();
+
+
+        hits.forEach(p->{
+            Text[] usernames = p.getHighlightFields().get("username").fragments();
+            String name = "";
+            for (Text username : usernames) {
+                name+= username;
+            }
+            System.out.println(name);
+        });
+
+        return hits;
+
+    }
+
+    @GetMapping(value = "aggregationDoc")
+    @ApiOperation("RestHighLevelClient 聚合函数最大、最下、平均值")
+    public Aggregations aggregationDoc(String index,String field) {
+        SearchRequest searchRequest =new SearchRequest(index);
+        //构建搜索builder
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
+        //构建最大值builder
+        MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("Max_"+field).field(field);
+
+        searchSourceBuilder.aggregation(maxAggregationBuilder);
+
+        searchRequest.source(searchSourceBuilder);
+
+        SearchResponse search = null;
+        try {
+            search = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        Aggregations aggregations = search.getAggregations();
+
+
+        return aggregations;
+
+    }
+
+    @GetMapping(value = "aggregationGroupDoc")
+    @ApiOperation("RestHighLevelClient 聚合函数分组查询")
+    public Aggregations aggregationGroupDoc(String index,String field) {
+        SearchRequest searchRequest =new SearchRequest(index);
+        //构建搜索builder
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
+        TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(field+"_group").field(field);
+        searchSourceBuilder.aggregation(termsAggregationBuilder);
+
+
+        searchRequest.source(searchSourceBuilder);
+
+        SearchResponse search = null;
+        try {
+            search = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        SearchHits hits = search.getHits();
+        hits.forEach(p->{
+            System.out.println(p.getSourceAsString());
+        });
+        Aggregations aggregations = search.getAggregations();
+        return aggregations;
+
+    }
+
+
+
+
+
+
+
 
 
 }
