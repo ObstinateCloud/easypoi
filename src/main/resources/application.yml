@@ -38,10 +38,18 @@ cususer:
 cusValue: cusvalue
 
 spring:
+  redis:
+    sentinel:
+      master: mymaster
+      nodes:
+        - 192.168.20.214:27001
+        - 192.168.20.214:27002
+        - 192.168.20.214:27003
+    password: Zhny_2021
   elasticsearch:
     rest:
-#      uris: http://192.168.20.207:9200
-      uris: http://127.0.0.1:9200
+      uris: http://192.168.20.207:9200
+#      uris: http://127.0.0.1:9200
 #      uris: http://192.168.171.37:9200
 #      username: admin
 #      password: admin
@@ -50,3 +58,5 @@ spring:
 logging:
   level:
     tracer: TRACE
+
+

@@ -77,7 +77,7 @@ public class ESController {
     @Autowired
     RestHighLevelClient restHighLevelClient;
 
-    @ApiOperation("继承ElasticsearchRepository 父类默认新增方法")
+    @ApiOperation(value = "继承ElasticsearchRepository 父类默认新增方法",position = 1)
     @GetMapping("put")
     public String esPut() {
         List<String> list = new ArrayList<>();
@@ -98,7 +98,7 @@ public class ESController {
         System.out.printf("结束");
         return "success";
     }
-    @ApiOperation("继承ElasticsearchRepository 父类默认查询全部")
+    @ApiOperation(value = "继承ElasticsearchRepository 父类默认查询全部",position = 2)
     @GetMapping("findAll")
     public void testFindAll() {
         Iterable<SysUser> all = sysUserDao.findAll();
